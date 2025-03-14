@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:MauiDemo.Models"
+             xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
+             x:Class="MauiDemo.Views.ChatBotView"
+             x:DataType="viewmodels:ChatViewModel"
+             Title="ChatBotView">
+
+    <Grid Padding="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Scrollable area containing the conversation -->
+        <CollectionView x:Name="MessageList"
+                        Grid.Row="0" 
+                        ItemsSource="{Binding Messages}"
+                        Margin="0,0,0,10">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ChatMessage">
+                    <Grid Padding="5">
+                        <Border BackgroundColor="{Binding Type, Converter={StaticResource MessageTypeToColorConverter}}"
+                                Stroke="{Binding Type, Converter={StaticResource MessageTypeToColorConverter}}"
+                                StrokeShape="RoundRectangle 12"
+                                StrokeThickness="1"
+                                Padding="10"
+                                HorizontalOptions="{Binding Type, Converter={StaticResource MessageTypeToAlignmentConverter}}"
+                                Margin="{Binding Type, Converter={StaticResource MessageTypeToMarginConverter}}">
+                            <Label Text="{Binding Text}"
+                                   TextColor="Black"
+                                   LineBreakMode="WordWrap" />
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.Footer>
+                <Grid IsVisible="{Binding IsBotTyping}">
+                    <Label Text="Bot is typing..." 
+                           TextColor="Gray" 
+                           Margin="15,0,0,5"
+                           HorizontalOptions="Start" />
+                </Grid>
+            </CollectionView.Footer>
+        </CollectionView>
+
+        <Grid Padding="10" Grid.Row="1" BackgroundColor="White">
+            <Border BackgroundColor="#F0F0F0" StrokeShape="RoundRectangle 20" Padding="10,5" HorizontalOptions="Fill">
+                <Grid>
+                    <Entry Text="{Binding UserInput}"
+                           Placeholder="Message" 
+                           FontSize="16" 
+                           VerticalOptions="Center" 
+                           Margin="0,0,20,0"
+                           ReturnCommand="{Binding SendMessageCommand}"/>
+
+                    <Button Command="{Binding SendMessageCommand}"
+                            BackgroundColor="Transparent" 
+                            TextColor="Black"
+                            WidthRequest="60" 
+                            ImageSource="send.png"
+                            HeightRequest="40" 
+                            HorizontalOptions="End" 
+                            VerticalOptions="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>
