@@ -1,0 +1,18 @@
+{
+  "configurations": [
+    {
+      "type": "coreclr",
+      "request": "launch",
+      "name": "Launch MAUI App",
+      "program": "${workspaceFolder}/bin/Debug/net9.0-windows10.0.19041.0/win10-x64/MauiDemo.exe",
+      "preLaunchTask": "build"
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "executableName",
+      "description": "Name of your executable"
+    }
+  ]
+}

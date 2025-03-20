@@ -1,0 +1,17 @@
+{
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "build",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/MauiDemo.csproj"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
