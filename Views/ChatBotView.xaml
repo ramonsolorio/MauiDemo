@@ -4,8 +4,7 @@
              xmlns:models="clr-namespace:MauiDemo.Models"
              xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
              x:Class="MauiDemo.Views.ChatBotView"
-             x:DataType="viewmodels:ChatViewModel"
-             Title="ChatBotView">
+             x:DataType="viewmodels:ChatViewModel">
 
     <Grid Padding="10">
         <Grid.RowDefinitions>
@@ -45,11 +44,12 @@
             </CollectionView.Footer>
         </CollectionView>
 
-        <Grid Padding="10" Grid.Row="1" BackgroundColor="White">
+        <Grid Padding="10" Grid.Row="1" >
             <Border BackgroundColor="#F0F0F0" StrokeShape="RoundRectangle 20" Padding="10,5" HorizontalOptions="Fill">
                 <Grid>
                     <Entry Text="{Binding UserInput}"
                            Placeholder="Message" 
+                           TextColor="Black"
                            FontSize="16" 
                            VerticalOptions="Center" 
                            Margin="0,0,20,0"
@@ -60,7 +60,7 @@
                             TextColor="Black"
                             WidthRequest="60" 
                             ImageSource="send.png"
-                            HeightRequest="40" 
+                            HeightRequest="20" 
                             HorizontalOptions="End" 
                             VerticalOptions="Center" />
                 </Grid>

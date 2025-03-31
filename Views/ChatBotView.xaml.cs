@@ -8,10 +8,10 @@ public partial class ChatBotView : ContentPage
 {
     private ChatViewModel _viewModel;
 
-    public ChatBotView(AzureOpenAIService openAIService)
+    public ChatBotView(AzureOpenAIService openAIService, ChatViewModel viewModel = null)
     {
         InitializeComponent();
-        _viewModel = new ChatViewModel(openAIService);
+        _viewModel = viewModel ?? new ChatViewModel(openAIService);
         BindingContext = _viewModel;
 
         // Subscribe to property changes for LastMessage

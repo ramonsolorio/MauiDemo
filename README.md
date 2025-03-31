@@ -99,7 +99,7 @@ namespace MauiDemo.Converters
                 return messageType switch
                 {
                     MessageType.User => Color.FromArgb("#DCF8C6"),
-                    MessageType.Bot => Colors.White,
+                    MessageType.Bot => Colors.LightBlue,
                     _ => Colors.Gray
                 };
             }
@@ -413,11 +413,12 @@ This class represents the ViewModel for the chat application, handling user inpu
             </CollectionView.Footer>
         </CollectionView>
 
-        <Grid Padding="10" Grid.Row="1" BackgroundColor="White">
+        <Grid Padding="10" Grid.Row="1">
             <Border BackgroundColor="#F0F0F0" StrokeShape="RoundRectangle 20" Padding="10,5" HorizontalOptions="Fill">
                 <Grid>
                     <Entry Text="{Binding UserInput}"
                            Placeholder="Message" 
+                           TextColor="Black"
                            FontSize="16" 
                            VerticalOptions="Center" 
                            Margin="0,0,20,0"
@@ -575,8 +576,7 @@ Open AppShell.xaml and modify it to register and navigate to ChatBotView:
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:MauiDemo.Views"
-    Shell.FlyoutBehavior="Flyout"
-    Title="MauiDemo">
+    Shell.FlyoutBehavior="Flyout">
 
     <ShellContent
         Title="Home"
@@ -644,7 +644,273 @@ If you encounter any issues:
 3.	Ensure all NuGet packages are correctly installed
 Images/debug-output.png
 
-## Step 15: Customize and Extend
+## Step 15: Adding a Statistics View
+In this step, you'll add a screen to show usage statistics about your chat interactions.
+
+1. Create a ViewModel for the statistics view in the ViewModels folder:
+
+```csharp
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using MauiDemo.Models;
+
+namespace MauiDemo.ViewModels
+{
+    public class ChatStatsViewModel : INotifyPropertyChanged
+    {
+        private readonly ChatViewModel _chatViewModel;
+        private int _userMessageCount;
+        private int _botMessageCount;
+        private int _totalMessageCount;
+
+        public int UserMessageCount
+        {
+            get => _userMessageCount;
+            set
+            {
+                if (_userMessageCount != value)
+                {
+                    _userMessageCount = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int BotMessageCount
+        {
+            get => _botMessageCount;
+            set
+            {
+                if (_botMessageCount != value)
+                {
+                    _botMessageCount = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int TotalMessageCount
+        {
+            get => _totalMessageCount;
+            set
+            {
+                if (_totalMessageCount != value)
+                {
+                    _totalMessageCount = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public ChatStatsViewModel(ChatViewModel chatViewModel)
+        {
+            _chatViewModel = chatViewModel;
+            UpdateStats();
+            
+            // Subscribe to changes in the messages to update statistics
+            _chatViewModel.PropertyChanged += ChatViewModel_PropertyChanged;
+        }
+
+        private void ChatViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ChatViewModel.LastMessage))
+            {
+                UpdateStats();
+            }
+        }
+
+        private void UpdateStats()
+        {
+            UserMessageCount = _chatViewModel.Messages.Count(m => m.Type == MessageType.User);
+            BotMessageCount = _chatViewModel.Messages.Count(m => m.Type == MessageType.Bot);
+            TotalMessageCount = _chatViewModel.Messages.Count;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}
+```
+
+2. Create a new view called `ChatStatsView.xaml` in the Views folder:
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
+             x:Class="MauiDemo.Views.ChatStatsView"
+             x:DataType="viewmodels:ChatStatsViewModel"
+             Title="Statistics">
+    
+    <Grid Padding="20">
+        <Frame BackgroundColor="#f0f0f0" 
+               Padding="20" 
+               CornerRadius="10"
+               BorderColor="#d1d1d1"
+               HasShadow="True"
+               HorizontalOptions="Center"
+               VerticalOptions="Center">
+            <VerticalStackLayout Spacing="20">
+                <Label Text="Chat Interaction Statistics"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+                
+                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto, Auto, Auto" ColumnSpacing="15" RowSpacing="15">
+                    <!-- Headers -->
+                    <Label Text="Metric" 
+                           Grid.Row="0" Grid.Column="0" 
+                           FontAttributes="Bold"
+                           HorizontalOptions="Start" />
+                    <Label Text="Count" 
+                           Grid.Row="0" Grid.Column="1" 
+                           FontAttributes="Bold"
+                           HorizontalOptions="End" />
+                    
+                    <!-- User Messages -->
+                    <Label Text="User Messages" 
+                           Grid.Row="1" Grid.Column="0" 
+                           VerticalOptions="Center" />
+                    <Label Text="{Binding UserMessageCount}" 
+                           Grid.Row="1" Grid.Column="1"
+                           FontSize="20"
+                           HorizontalOptions="End"
+                           VerticalOptions="Center" />
+                    
+                    <!-- Bot Messages -->
+                    <Label Text="Bot Responses" 
+                           Grid.Row="2" Grid.Column="0" 
+                           VerticalOptions="Center" />
+                    <Label Text="{Binding BotMessageCount}" 
+                           Grid.Row="2" Grid.Column="1" 
+                           FontSize="20"
+                           HorizontalOptions="End"
+                           VerticalOptions="Center" />
+                    
+                    <!-- Total -->
+                    <Label Text="Total Interactions" 
+                           Grid.Row="3" Grid.Column="0" 
+                           FontAttributes="Bold"
+                           VerticalOptions="Center" />
+                    <Label Text="{Binding TotalMessageCount}" 
+                           Grid.Row="3" Grid.Column="1" 
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           HorizontalOptions="End"
+                           VerticalOptions="Center" />
+                </Grid>
+            </VerticalStackLayout>
+        </Frame>
+    </Grid>
+</ContentPage>
+```
+
+3. Create the code-behind file `ChatStatsView.xaml.cs`:
+
+```csharp
+using MauiDemo.ViewModels;
+
+namespace MauiDemo.Views;
+
+public partial class ChatStatsView : ContentPage
+{
+    private ChatStatsViewModel _viewModel;
+
+    public ChatStatsView(ChatViewModel chatViewModel)
+    {
+        InitializeComponent();
+        _viewModel = new ChatStatsViewModel(chatViewModel);
+        BindingContext = _viewModel;
+    }
+}
+```
+
+4. Update the AppShell.xaml to include the statistics view in the flyout menu:
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="MauiDemo.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:MauiDemo.Views"
+    Shell.FlyoutBehavior="Flyout"
+    Title="MauiDemo">
+
+
+    <Shell.FlyoutHeader>
+        <Grid HeightRequest="100" BackgroundColor="#f0f0f0">
+            <Label Text="AI Chat Assistant" 
+                  FontSize="16" 
+                  TextColor="Black"
+                  FontAttributes="Bold" 
+                  HorizontalOptions="Center" 
+                  VerticalOptions="Center"/>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <FlyoutItem Title="Chat" Icon="send.png">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:ChatBotView}"
+            Route="ChatBotView" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Statistics" Icon="stats.png">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:ChatStatsView}"
+            Route="ChatStats" />
+    </FlyoutItem>
+
+</Shell>
+
+```
+
+5. Update MauiProgram.cs to register the new view and ensure ChatViewModel is shared:
+
+```csharp
+// Register Azure OpenAI service
+builder.Services.AddSingleton(new AzureOpenAIService(
+    endpoint: "YOUR_AZURE_OPENAI_ENDPOINT", 
+    key: "YOUR_AZURE_OPENAI_KEY",
+    deploymentName: "YOUR_DEPLOYMENT_NAME"
+));
+
+// Register ChatViewModel as singleton to share between views
+builder.Services.AddSingleton<ChatViewModel>();
+
+// Register views
+builder.Services.AddTransient<ChatBotView>();
+builder.Services.AddTransient<ChatStatsView>();
+```
+
+6. Add icons for the flyout menu:
+   - Add icons named "chat.png" and "stats.png" to the Resources/Images folder
+   - Make sure to set the Build Action to "MauiImage" in the file properties
+
+7. Update the constructor of ChatBotView to accept the shared ChatViewModel:
+
+```csharp
+public ChatBotView(AzureOpenAIService openAIService, ChatViewModel viewModel = null)
+{
+    InitializeComponent();
+    _viewModel = viewModel ?? new ChatViewModel(openAIService);
+    BindingContext = _viewModel;
+
+    // Subscribe to property changes for LastMessage
+    _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+}
+```
+
+![Image](Images/stats-view.png)
+
+Now your application has a statistics screen accessible from the flyout menu that shows counts of user messages, bot responses, and total interactions. The statistics will update automatically when new messages are added to the conversation.
+
+## Step 16: Customize and Extend
 Now that you have a working chatbot, you can customize and extend it:
 1.	Change the appearance by updating the XAML styles
 2.	Add support for additional message types (images, files)

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using MauiDemo.Services;
 using MauiDemo.Views;
+using MauiDemo.ViewModels;
 
 namespace MauiDemo;
 
@@ -24,8 +25,12 @@ public static class MauiProgram
             deploymentName: "YOUR_DEPLOYMENT_NAME"
         ));
 
+        // Register ChatViewModel as singleton to share between views
+        builder.Services.AddSingleton<ChatViewModel>();
+
         // Register views
         builder.Services.AddTransient<ChatBotView>();
+        builder.Services.AddTransient<ChatStatsView>();
 
 #if DEBUG
         builder.Logging.AddDebug();

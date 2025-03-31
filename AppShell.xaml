@@ -7,9 +7,28 @@
     Shell.FlyoutBehavior="Flyout"
     Title="MauiDemo">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:ChatBotView}"
-        Route="ChatBotView" />
+
+    <Shell.FlyoutHeader>
+        <Grid HeightRequest="100" BackgroundColor="#f0f0f0">
+            <Label Text="AI Chat Assistant" 
+                  FontSize="16" 
+                  TextColor="Black"
+                  FontAttributes="Bold" 
+                  HorizontalOptions="Center" 
+                  VerticalOptions="Center"/>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <FlyoutItem Title="Chat" Icon="send.png">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:ChatBotView}"
+            Route="ChatBotView" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Statistics" Icon="stats.png">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:ChatStatsView}"
+            Route="ChatStats" />
+    </FlyoutItem>
 
 </Shell>

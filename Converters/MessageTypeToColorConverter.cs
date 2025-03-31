@@ -11,7 +11,7 @@ namespace MauiDemo.Converters
                 return messageType switch
                 {
                     MessageType.User => Color.FromArgb("#DCF8C6"),
-                    MessageType.Bot => Colors.White,
+                    MessageType.Bot => Colors.LightBlue,
                     _ => Colors.Gray
                 };
             }
