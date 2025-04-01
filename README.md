@@ -680,9 +680,91 @@ If you encounter any issues:
 1.	Check the Debug output in Visual Studio for error messages
 2.	Verify your Azure OpenAI service is properly configured
 3.	Ensure all NuGet packages are correctly installed
-Images/debug-output.png
 
-## Step 15: Adding a Statistics View
+
+
+## Step 15: Using Configuration Files for Better Settings Management
+In this step, we'll improve the application by moving the Azure OpenAI credentials from hardcoded values to an external configuration file. This is a best practice for several reasons:
+
+Better security: Keeps sensitive information out of source code
+Easier configuration management: Update settings without changing code
+Environment-specific configuration: Different settings for development and production
+Better separation of concerns: Application logic stays separate from configuration
+Implementing Configuration Files in .NET MAUI
+1. Add the required NuGet package:
+
+    * Right-click on the project in Solution Explorer and select "Manage NuGet Packages"
+    * Search for and install Microsoft.Extensions.Configuration.Json package
+    * Or execute this command directly in your console:
+        ```
+        dotnet add package Microsoft.Extensions.Configuration.Json
+        ```
+2. Create the appsettings.json file:
+
+    Right-click on your project, select Add > New Item
+    Create a new JSON file named appsettings.json
+    Add the following content:
+    ```json
+    {
+        "AzureOpenAI": 
+        {
+            "Endpoint": "YOUR_AZURE_OPENAI_ENDPOINT",
+            "ApiKey": "YOUR_AZURE_OPENAI_KEY",
+            "DeploymentName": "YOUR_DEPLOYMENT_NAME"
+        }
+    }
+    ```
+3. Configure the appsettings.json file in the project:
+    * Select the appsettings.json file in Solution Explorer
+    * In the Properties window, set:
+        * Build Action: EmbeddedResource
+        * Copy to Output Directory: Always
+    * Or add these settings to your .csproj file:
+        ```xml
+        <ItemGroup>
+        <None Remove="appsettings.json" />
+        </ItemGroup>
+        <ItemGroup>
+        <EmbeddedResource Include="appsettings.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </EmbeddedResource>
+        </ItemGroup>
+        ```
+4. Update MauiProgram.cs to read from the configuration file:
+    * Add necessary using directives
+    * Load the configuration from the embedded resource
+    * Extract the Azure OpenAI settings
+        ```csharp
+        //Update references
+        using Microsoft.Extensions.Configuration;
+        using System.Reflection;
+
+        // Inside CreateMauiApp method:
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("MauiDemo.appsettings.json");
+        if (stream == null)
+        {
+            throw new InvalidOperationException("Failed to load the embedded resource 'MauiDemo.appsettings.json'.");
+        }
+        var config = new ConfigurationBuilder().AddJsonStream(stream).Build();
+        var endpoint = config["AzureOpenAI:Endpoint"] ?? throw new InvalidOperationException("AzureOpenAI:Endpoint is not configured.");
+        var apiKey = config["AzureOpenAI:ApiKey"] ?? throw new InvalidOperationException("AzureOpenAI:ApiKey is not configured.");
+        var deploymentName = config["AzureOpenAI:DeploymentName"] ?? throw new InvalidOperationException("AzureOpenAI:DeploymentName is not configured.");
+
+        builder.Services.AddSingleton(new AzureOpenAIService(endpoint, apiKey, deploymentName));
+        ```
+5. Update your local settings:
+
+    * Open the appsettings.json file
+    * Replace the placeholder values with your actual Azure OpenAI credentials
+    * Important: Add appsettings.json with real credentials to your .gitignore file to prevent committing sensitive information
+
+* Benefits of This Approach
+    * Security: Your API keys and other sensitive information are not hardcoded in source code
+    * Configurability: You can change settings without recompiling the application
+    * Maintainability: Centralizes all configuration in one place
+    * Environment support: Makes it easier to use different settings in development and production
+
+## Step 16: Adding a Statistics View
 In this step, you'll add a screen to show usage statistics about your chat interactions.
 
 1. Create a ViewModel for the statistics view in the ViewModels folder:
@@ -939,12 +1021,6 @@ public partial class ChatStatsView : ContentPage
 5. Update MauiProgram.cs to register the new view and ensure ChatViewModel is shared:
 
 ```csharp
-// Register Azure OpenAI service
-builder.Services.AddSingleton(new AzureOpenAIService(
-    endpoint: "YOUR_AZURE_OPENAI_ENDPOINT", 
-    key: "YOUR_AZURE_OPENAI_KEY",
-    deploymentName: "YOUR_DEPLOYMENT_NAME"
-));
 
 // Register ChatViewModel as singleton to share between views
 builder.Services.AddSingleton<ChatViewModel>();
@@ -978,7 +1054,7 @@ public ChatBotView(AzureOpenAIService openAIService, ChatViewModel viewModel = n
 
 Now your application has a statistics screen accessible from the flyout menu that shows counts of user messages, bot responses, and total interactions. The statistics will update automatically when new messages are added to the conversation.
 
-## Step 16: Customize and Extend
+## Step 17: Customize and Extend
 Now that you have a working chatbot, you can customize and extend it:
 1.	Change the appearance by updating the XAML styles
 2.	Add support for additional message types (images, files)

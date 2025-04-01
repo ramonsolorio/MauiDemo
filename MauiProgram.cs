@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using System.Reflection;
 using MauiDemo.Services;
 using MauiDemo.Views;
 using MauiDemo.ViewModels;
@@ -18,12 +20,17 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // Register Azure OpenAI service
-        builder.Services.AddSingleton(new AzureOpenAIService(
-            endpoint: "YOUR_AZURE_OPENAI_ENDPOINT",
-            key: "YOUR_AZURE_OPENAI_KEY",
-            deploymentName: "YOUR_DEPLOYMENT_NAME"
-        ));
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("MauiDemo.appsettings.json");
+        if (stream == null)
+        {
+            throw new InvalidOperationException("Failed to load the embedded resource 'MauiDemo.appsettings.json'.");
+        }
+        var config = new ConfigurationBuilder().AddJsonStream(stream).Build();
+        var endpoint = config["AzureOpenAI:Endpoint"] ?? throw new InvalidOperationException("AzureOpenAI:Endpoint is not configured.");
+        var apiKey = config["AzureOpenAI:ApiKey"] ?? throw new InvalidOperationException("AzureOpenAI:ApiKey is not configured.");
+        var deploymentName = config["AzureOpenAI:DeploymentName"] ?? throw new InvalidOperationException("AzureOpenAI:DeploymentName is not configured.");
+        
+        builder.Services.AddSingleton(new AzureOpenAIService(endpoint, apiKey, deploymentName));
 
         // Register ChatViewModel as singleton to share between views
         builder.Services.AddSingleton<ChatViewModel>();
