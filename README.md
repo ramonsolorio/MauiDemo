@@ -3,7 +3,45 @@
 ## Overview
 
 This lab guides you through creating a chat application using .NET MAUI and Azure OpenAI. The application provides a conversational interface where users can interact with an AI assistant powered by Azure OpenAI.
-Images/app-preview.png
+
+## Application Architecture
+
+```mermaid
+graph TD
+    subgraph "Client Application (.NET MAUI)"
+        UI[".NET MAUI UI<br/>Views"]
+        VM["ViewModels<br/>(MVVM Pattern)"]
+        M["Models<br/>(ChatMessage)"]
+        S["Services<br/>(AzureOpenAIService)"]
+        C["Converters<br/>(Value Converters)"]
+        
+        UI <--> VM
+        VM <--> M
+        VM <--> S
+        UI -- Formatting --> C
+    end
+    
+    subgraph "Azure Cloud"
+        AzOAI["Azure OpenAI Service"]
+    end
+    
+    S <--"API Requests/Responses"--> AzOAI
+    
+    style UI fill:#9EC6E0,stroke:#333
+    style VM fill:#9ED8E0,stroke:#333
+    style M fill:#C6E09E,stroke:#333
+    style S fill:#E09EC6,stroke:#333
+    style C fill:#E0D89E,stroke:#333
+    style AzOAI fill:#8A2BE2,stroke:#333,color:#fff
+```
+
+The diagram above illustrates the application architecture and data flow:
+- **Views**: XAML UI components that display the chat interface
+- **ViewModels**: Implement the MVVM pattern to manage UI logic and state
+- **Models**: Define data structures like ChatMessage
+- **Services**: Handle communication with Azure OpenAI
+- **Converters**: Transform data for UI presentation
+- **Azure OpenAI Service**: External cloud service providing AI chat capabilities
 
 ## Prerequisites
  * Visual Studio 2022 with .NET MAUI workload installed
