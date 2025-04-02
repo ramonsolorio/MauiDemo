@@ -3,8 +3,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:MauiDemo.Models"
              xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
-             x:Class="MauiDemo.Views.ChatBotView"
+             x:Class="MauiDemo.Views.ChatBotView"             
              x:DataType="viewmodels:ChatViewModel">
+
+    <Shell.TitleView>
+        <Grid HorizontalOptions="Fill">
+            <Label Text="CENACE ChatBot" 
+                   HorizontalOptions="Center" 
+                   VerticalOptions="Center" 
+                   FontAttributes="Bold" 
+                   TextColor="Gray"
+                   FontSize="20"/>
+        </Grid>
+    </Shell.TitleView>
 
     <Grid Padding="10">
         <Grid.RowDefinitions>
@@ -52,7 +63,7 @@
                            TextColor="Black"
                            FontSize="16" 
                            VerticalOptions="Center" 
-                           Margin="0,0,20,0"
+                           Margin="0,0,40,0"
                            ReturnCommand="{Binding SendMessageCommand}"/>
 
                     <Button Command="{Binding SendMessageCommand}"

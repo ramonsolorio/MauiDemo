@@ -409,9 +409,19 @@ This class represents the ViewModel for the chat application, handling user inpu
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:MauiDemo.Models"
              xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
-             x:Class="MauiDemo.Views.ChatBotView"
-             x:DataType="viewmodels:ChatViewModel"
-             Title="ChatBotView">
+             x:Class="MauiDemo.Views.ChatBotView"             
+             x:DataType="viewmodels:ChatViewModel">
+
+    <Shell.TitleView>
+        <Grid HorizontalOptions="Fill">
+            <Label Text="CENACE ChatBot" 
+                   HorizontalOptions="Center" 
+                   VerticalOptions="Center" 
+                   FontAttributes="Bold" 
+                   TextColor="Gray"
+                   FontSize="20"/>
+        </Grid>
+    </Shell.TitleView>
 
     <Grid Padding="10">
         <Grid.RowDefinitions>
@@ -451,7 +461,7 @@ This class represents the ViewModel for the chat application, handling user inpu
             </CollectionView.Footer>
         </CollectionView>
 
-        <Grid Padding="10" Grid.Row="1">
+        <Grid Padding="10" Grid.Row="1" >
             <Border BackgroundColor="#F0F0F0" StrokeShape="RoundRectangle 20" Padding="10,5" HorizontalOptions="Fill">
                 <Grid>
                     <Entry Text="{Binding UserInput}"
@@ -459,21 +469,22 @@ This class represents the ViewModel for the chat application, handling user inpu
                            TextColor="Black"
                            FontSize="16" 
                            VerticalOptions="Center" 
-                           Margin="0,0,20,0"
+                           Margin="0,0,40,0"
                            ReturnCommand="{Binding SendMessageCommand}"/>
 
                     <Button Command="{Binding SendMessageCommand}"
                             BackgroundColor="Transparent" 
-                            WidthRequest="40" 
-                            ImageSource="search.png" 
-                            HeightRequest="40" 
+                            TextColor="Black"
+                            WidthRequest="60" 
+                            ImageSource="send.png"
+                            HeightRequest="20" 
                             HorizontalOptions="End" 
                             VerticalOptions="Center" />
                 </Grid>
             </Border>
         </Grid>
     </Grid>
-</ContentPage> 
+</ContentPage>
 
 ```
 This XAML defines the chat interface layout, including the conversation area, message formatting, and user input controls.
