@@ -462,7 +462,7 @@ This class represents the ViewModel for the chat application, handling user inpu
         </CollectionView>
 
         <Grid Padding="10" Grid.Row="1" >
-            <Border BackgroundColor="#F0F0F0" StrokeShape="RoundRectangle 20" Padding="10,5" HorizontalOptions="Fill">
+            <Border BackgroundColor="#F0F0F0" StrokeShape="RoundRectangle 20" Padding="10,10,0,10" HorizontalOptions="Fill">
                 <Grid>
                     <Entry Text="{Binding UserInput}"
                            Placeholder="Message" 
@@ -479,6 +479,7 @@ This class represents the ViewModel for the chat application, handling user inpu
                             ImageSource="send.png"
                             HeightRequest="20" 
                             HorizontalOptions="End" 
+                            Margin="0"
                             VerticalOptions="Center" />
                 </Grid>
             </Border>
