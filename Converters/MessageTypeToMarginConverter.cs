@@ -4,7 +4,7 @@ namespace MauiDemo.Converters
 {
     public class MessageTypeToMarginConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is MessageType messageType)
             {
@@ -18,7 +18,7 @@ namespace MauiDemo.Converters
             return new Thickness(10, 5);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

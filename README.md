@@ -130,7 +130,7 @@ namespace MauiDemo.Converters
 {
     public class MessageTypeToColorConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is MessageType messageType)
             {
@@ -144,7 +144,7 @@ namespace MauiDemo.Converters
             return Colors.Gray;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
@@ -160,7 +160,7 @@ namespace MauiDemo.Converters
 {
     public class MessageTypeToAlignmentConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is MessageType messageType)
             {
@@ -174,7 +174,7 @@ namespace MauiDemo.Converters
             return LayoutOptions.Center;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
@@ -190,7 +190,7 @@ namespace MauiDemo.Converters
 {
     public class MessageTypeToMarginConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is MessageType messageType)
             {
@@ -204,7 +204,7 @@ namespace MauiDemo.Converters
             return new Thickness(10, 5);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
@@ -1005,7 +1005,7 @@ public partial class ChatStatsView : ContentPage
 
     <Shell.FlyoutHeader>
         <Grid HeightRequest="100" BackgroundColor="#f0f0f0">
-            <Label Text="AI Chat Assistant" 
+            <Label Text="CENACE" 
                   FontSize="16" 
                   TextColor="Black"
                   FontAttributes="Bold" 
