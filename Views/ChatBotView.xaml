@@ -4,7 +4,7 @@
              xmlns:models="clr-namespace:MauiDemo.Models"
              xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
              x:Class="MauiDemo.Views.ChatBotView"             
-             x:DataType="viewmodels:ChatViewModel">
+             x:DataType="viewmodels:ChatBotViewModel">
 
     <Shell.TitleView>
         <Grid HorizontalOptions="Fill">

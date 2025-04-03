@@ -6,12 +6,12 @@ namespace MauiDemo.Views;
 
 public partial class ChatBotView : ContentPage
 {
-    private ChatViewModel _viewModel;
+    private ChatBotViewModel _viewModel;
 
-    public ChatBotView(AzureOpenAIService openAIService, ChatViewModel viewModel = null)
+    public ChatBotView(AzureOpenAIService openAIService, ChatBotViewModel viewModel = null)
     {
         InitializeComponent();
-        _viewModel = viewModel ?? new ChatViewModel(openAIService);
+        _viewModel = viewModel ?? new ChatBotViewModel(openAIService);
         BindingContext = _viewModel;
 
         // Subscribe to property changes for LastMessage
@@ -20,7 +20,7 @@ public partial class ChatBotView : ContentPage
 
     private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ChatViewModel.LastMessage) && _viewModel.LastMessage != null)
+        if (e.PropertyName == nameof(ChatBotViewModel.LastMessage) && _viewModel.LastMessage != null)
         {
             // Scroll to the last message
             ScrollToLastMessage();

@@ -6,7 +6,7 @@ namespace MauiDemo.ViewModels
 {
     public class ChatStatsViewModel : INotifyPropertyChanged
     {
-        private readonly ChatViewModel _chatViewModel;
+        private readonly ChatBotViewModel _chatBotViewModel;
         private int _userMessageCount;
         private int _botMessageCount;
         private int _totalMessageCount;
@@ -50,18 +50,18 @@ namespace MauiDemo.ViewModels
             }
         }
 
-        public ChatStatsViewModel(ChatViewModel chatViewModel)
+        public ChatStatsViewModel(ChatBotViewModel chatBotViewModel)
         {
-            _chatViewModel = chatViewModel;
+            _chatBotViewModel = chatBotViewModel;
             UpdateStats();
-            
+
             // Subscribe to changes in the messages to update statistics
-            _chatViewModel.PropertyChanged += ChatViewModel_PropertyChanged;
+            _chatBotViewModel.PropertyChanged += ChatBotViewModel_PropertyChanged;
         }
 
-        private void ChatViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void ChatBotViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ChatViewModel.LastMessage))
+            if (e.PropertyName == nameof(ChatBotViewModel.LastMessage))
             {
                 UpdateStats();
             }
@@ -69,9 +69,9 @@ namespace MauiDemo.ViewModels
 
         private void UpdateStats()
         {
-            UserMessageCount = _chatViewModel.Messages.Count(m => m.Type == MessageType.User);
-            BotMessageCount = _chatViewModel.Messages.Count(m => m.Type == MessageType.Bot);
-            TotalMessageCount = _chatViewModel.Messages.Count;
+            UserMessageCount = _chatBotViewModel.Messages.Count(m => m.Type == MessageType.User);
+            BotMessageCount = _chatBotViewModel.Messages.Count(m => m.Type == MessageType.Bot);
+            TotalMessageCount = _chatBotViewModel.Messages.Count;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

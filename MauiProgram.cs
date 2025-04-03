@@ -33,7 +33,7 @@ public static class MauiProgram
         builder.Services.AddSingleton(new AzureOpenAIService(endpoint, apiKey, deploymentName));
 
         // Register ChatViewModel as singleton to share between views
-        builder.Services.AddSingleton<ChatViewModel>();
+        builder.Services.AddSingleton<ChatBotViewModel>();
 
         // Register views
         builder.Services.AddTransient<ChatBotView>();

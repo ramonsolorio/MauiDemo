@@ -9,7 +9,7 @@ using ChatMessage = MauiDemo.Models.ChatMessage;
 
 namespace MauiDemo.ViewModels
 {
-    public class ChatViewModel : INotifyPropertyChanged
+    public class ChatBotViewModel : INotifyPropertyChanged
     {
         private readonly AzureOpenAIService _openAIService;
         private readonly List<OpenAI.Chat.ChatMessage> _messages;
@@ -59,7 +59,7 @@ namespace MauiDemo.ViewModels
             }
         }
 
-        public ChatViewModel(AzureOpenAIService openAIService)
+        public ChatBotViewModel(AzureOpenAIService openAIService)
         {
             _openAIService = openAIService;
             Messages = new ObservableCollection<ChatMessage>();

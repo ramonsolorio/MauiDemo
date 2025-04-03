@@ -6,10 +6,10 @@ public partial class ChatStatsView : ContentPage
 {
     private ChatStatsViewModel _viewModel;
 
-    public ChatStatsView(ChatViewModel chatViewModel)
+    public ChatStatsView(ChatBotViewModel chatBotViewModel)
     {
         InitializeComponent();
-        _viewModel = new ChatStatsViewModel(chatViewModel);
+        _viewModel = new ChatStatsViewModel(chatBotViewModel);
         BindingContext = _viewModel;
     }
 }
