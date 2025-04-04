@@ -639,9 +639,11 @@ Open AppShell.xaml and modify it to register and navigate to ChatBotView:
 ## Step 10: Add a Send Icon to Resources
 
    1. Add icons named "send.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/send.svg)
-   2. and "stats.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/stats.svg) to the Resources/Images folder 
-   3. Make sure to set the Build Action to "MauiImage" in the file properties
-   4. Update the Button in ChatBotView.xaml to use the correct image:
+   2. "history.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/stats.svg) 
+   2. "plus.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/stats.svg) 
+   3. "stats.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/stats.svg) to the Resources/Images folder 
+   4. Make sure to set the Build Action to "MauiImage" in the file properties
+   5. Update the Button in ChatBotView.xaml to use the correct image:
 
 ```xml
 <Button Command="{Binding SendMessageCommand}"
