@@ -637,11 +637,11 @@ Open AppShell.xaml and modify it to register and navigate to ChatBotView:
 ```
 
 ## Step 10: Add a Send Icon to Resources
-1.	Download a suitable send icon image (you can use a free icon from a site like flaticon.com)
-2.	Add the image to the Resources/Images folder of your project
-3.	Rename the image to "send.png" (or update the reference in ChatBotView.xaml)
-Images/add-send-icon.png
-4.	Update the Button in ChatBotView.xaml to use the correct image:
+
+   1. Add icons named "send.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/send.svg)
+   2. and "stats.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/stats.svg) to the Resources/Images folder 
+   3. Make sure to set the Build Action to "MauiImage" in the file properties
+   4. Update the Button in ChatBotView.xaml to use the correct image:
 
 ```xml
 <Button Command="{Binding SendMessageCommand}"
@@ -969,6 +969,7 @@ namespace MauiDemo.ViewModels
 </ContentPage>
 
 ```
+Add icons for user, bot, and total interactions to the Resources/Images folder. You can use any icons you prefer, or create simple placeholders for now. Name them `user_icon.png`, `bot_icon.png`, and `total_icon.png` respectively.
 
 3. Create the code-behind file `ChatStatsView.xaml.cs`:
 
@@ -1042,12 +1043,8 @@ builder.Services.AddTransient<ChatBotView>();
 builder.Services.AddTransient<ChatStatsView>();
 ```
 
-6. Add icons for the flyout menu:
-   - Add icons named "send.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/send.svg)
-   - and "stats.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/stats.svg) to the Resources/Images folder 
-   - Make sure to set the Build Action to "MauiImage" in the file properties
 
-7. Update the constructor of ChatBotView.cs to accept the shared ChatBotViewModel:
+6. Update the constructor of ChatBotView.cs to accept the shared ChatBotViewModel:
 
 ```csharp
 public ChatBotView(AzureOpenAIService openAIService, ChatBotViewModel viewModel = null)
