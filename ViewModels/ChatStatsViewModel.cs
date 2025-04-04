@@ -1,15 +1,15 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using MauiDemo.Models;
+using MauiDemo.Services;
 
 namespace MauiDemo.ViewModels
 {
-    public class ChatStatsViewModel : INotifyPropertyChanged
+    public class ChatStatsViewModel : BaseViewModel
     {
-        private readonly ChatBotViewModel _chatBotViewModel;
+        private readonly DatabaseService _databaseService;
         private int _userMessageCount;
         private int _botMessageCount;
         private int _totalMessageCount;
+        private int _totalConversationsCount;
 
         public int UserMessageCount
         {
@@ -50,35 +50,44 @@ namespace MauiDemo.ViewModels
             }
         }
 
-        public ChatStatsViewModel(ChatBotViewModel chatBotViewModel)
+        public int TotalConversationsCount
         {
-            _chatBotViewModel = chatBotViewModel;
-            UpdateStats();
-
-            // Subscribe to changes in the messages to update statistics
-            _chatBotViewModel.PropertyChanged += ChatBotViewModel_PropertyChanged;
-        }
-
-        private void ChatBotViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(ChatBotViewModel.LastMessage))
+            get => _totalConversationsCount;
+            set
             {
-                UpdateStats();
+                if (_totalConversationsCount != value)
+                {
+                    _totalConversationsCount = value;
+                    OnPropertyChanged();
+                }
             }
         }
 
-        private void UpdateStats()
+        public ChatStatsViewModel(DatabaseService databaseService)
         {
-            UserMessageCount = _chatBotViewModel.Messages.Count(m => m.Type == MessageType.User);
-            BotMessageCount = _chatBotViewModel.Messages.Count(m => m.Type == MessageType.Bot);
-            TotalMessageCount = _chatBotViewModel.Messages.Count;
+            _databaseService = databaseService;
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        public async Task LoadHistoricalStatsAsync()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            var conversations = await _databaseService.GetAllConversationsAsync();
+            TotalConversationsCount = conversations.Count;
+
+            int totalUserMessages = 0;
+            int totalBotMessages = 0;
+
+            foreach (var conversation in conversations)
+            {
+                var messages = await _databaseService.GetConversationMessagesAsync(conversation.Id);
+                totalUserMessages += messages.Count(m => m.Type == MessageType.User);
+                totalBotMessages += messages.Count(m => m.Type == MessageType.Bot);
+            }
+
+            // Update the stats with both current session and historical data
+            UserMessageCount = totalUserMessages ;
+            BotMessageCount = totalBotMessages;
+            TotalMessageCount = totalUserMessages + totalBotMessages ;
         }
+
     }
 }

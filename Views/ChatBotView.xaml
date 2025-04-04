@@ -3,29 +3,48 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:MauiDemo.Models"
              xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
-             x:Class="MauiDemo.Views.ChatBotView"             
+             x:Class="MauiDemo.Views.ChatBotView"
              x:DataType="viewmodels:ChatBotViewModel">
 
     <Shell.TitleView>
-        <Grid HorizontalOptions="Fill">
-            <Label Text="CENACE ChatBot" 
-                   HorizontalOptions="Center" 
-                   VerticalOptions="Center" 
-                   FontAttributes="Bold" 
-                   TextColor="Gray"
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+
+            </Grid.ColumnDefinitions>
+
+            <Label Grid.Column="0"
+                   Text="CENACE ChatBot"
+                   HorizontalOptions="Start"
+                   VerticalOptions="Center"
+                   FontAttributes="Bold"
+                   Margin="5,0,0,0"
                    FontSize="20"/>
+
+            <Button Grid.Column="1"
+                    Text=""
+                    Command="{Binding NewConversationCommand}"
+                    BackgroundColor="#0078D7"
+                    TextColor="White"
+                    FontSize="Micro"
+                    ImageSource="plus.png"
+                    Margin="0,5,0,3"/>
+
         </Grid>
+
+
     </Shell.TitleView>
 
     <Grid Padding="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Scrollable area containing the conversation -->
         <CollectionView x:Name="MessageList"
-                        Grid.Row="0" 
+                        Grid.Row="0"
                         ItemsSource="{Binding Messages}"
                         Margin="0,0,0,10">
             <CollectionView.ItemTemplate>
@@ -40,41 +59,45 @@
                                 Margin="{Binding Type, Converter={StaticResource MessageTypeToMarginConverter}}">
                             <Label Text="{Binding Text}"
                                    TextColor="Black"
-                                   LineBreakMode="WordWrap" />
+                                   LineBreakMode="WordWrap"/>
                         </Border>
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
             <CollectionView.Footer>
                 <Grid IsVisible="{Binding IsBotTyping}">
-                    <Label Text="Bot is typing..." 
-                           TextColor="Gray" 
+                    <Label Text="Bot is typing..."
+                           TextColor="Gray"
                            Margin="15,0,0,5"
-                           HorizontalOptions="Start" />
+                           HorizontalOptions="Start"/>
                 </Grid>
             </CollectionView.Footer>
         </CollectionView>
 
-        <Grid Padding="10" Grid.Row="1" >
-            <Border BackgroundColor="#F0F0F0" StrokeShape="RoundRectangle 20" Padding="10,10,0,10" HorizontalOptions="Fill">
+        <Grid Padding="10"
+              Grid.Row="1">
+            <Border BackgroundColor="#F0F0F0"
+                    StrokeShape="RoundRectangle 10"
+                    Padding="10,10,0,10"
+                    HorizontalOptions="Fill">
                 <Grid>
                     <Entry Text="{Binding UserInput}"
-                           Placeholder="Message" 
+                           Placeholder="Message"
                            TextColor="Black"
-                           FontSize="16" 
-                           VerticalOptions="Center" 
-                           Margin="0,0,40,0"
+                           FontSize="16"
+                           VerticalOptions="Center"
+                           Margin="0,0,50,0"
                            ReturnCommand="{Binding SendMessageCommand}"/>
 
                     <Button Command="{Binding SendMessageCommand}"
-                            BackgroundColor="Transparent" 
+                            BackgroundColor="Transparent"
                             TextColor="Black"
-                            WidthRequest="60" 
+                            WidthRequest="60"
                             ImageSource="send.png"
-                            HeightRequest="20" 
-                            HorizontalOptions="End" 
+                            HeightRequest="20"
+                            HorizontalOptions="End"
                             Margin="0"
-                            VerticalOptions="Center" />
+                            VerticalOptions="Center"/>
                 </Grid>
             </Border>
         </Grid>

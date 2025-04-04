@@ -64,10 +64,16 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.3" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
+		<PackageReference Include="SQLitePCLRaw.core" Version="2.1.11" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <MauiXaml Update="Views\ChatBotView.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\ChatHistoryView.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>

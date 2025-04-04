@@ -19,7 +19,7 @@
                            TextColor="#333"
                            HorizontalOptions="Center" />
 
-                    <Grid ColumnDefinitions="40, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto" ColumnSpacing="10" RowSpacing="15">
+                    <Grid ColumnDefinitions="40, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnSpacing="10" RowSpacing="15">
                         <!-- Headers -->
                         <Label Text="Metric" 
                                Grid.Row="0" Grid.Column="1" 
@@ -70,19 +70,37 @@
                                HorizontalOptions="End"
                                VerticalOptions="Center" />
 
-                        <!-- Total -->
+                        <!-- Total Messages -->
                         <Image Source="total_icon.png" 
                                Grid.Row="3" Grid.Column="0" 
                                HeightRequest="24" WidthRequest="24" 
                                VerticalOptions="Center" />
-                        <Label Text="Total Interactions" 
+                        <Label Text="Total Messages" 
                                Grid.Row="3" Grid.Column="1" 
                                FontSize="16"
-                               FontAttributes="Bold"
                                TextColor="#333"
                                VerticalOptions="Center" />
                         <Label Text="{Binding TotalMessageCount}" 
                                Grid.Row="3" Grid.Column="2" 
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               TextColor="#0078D7"
+                               HorizontalOptions="End"
+                               VerticalOptions="Center" />
+                               
+                        <!-- Total Conversations -->
+                        <Image Source="history_icon.png" 
+                               Grid.Row="4" Grid.Column="0" 
+                               HeightRequest="24" WidthRequest="24" 
+                               VerticalOptions="Center" />
+                        <Label Text="Total Conversations" 
+                               Grid.Row="4" Grid.Column="1" 
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#333"
+                               VerticalOptions="Center" />
+                        <Label Text="{Binding TotalConversationsCount}" 
+                               Grid.Row="4" Grid.Column="2" 
                                FontSize="20"
                                FontAttributes="Bold"
                                TextColor="#0078D7"

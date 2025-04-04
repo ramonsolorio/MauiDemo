@@ -10,7 +10,7 @@
 
     <Shell.FlyoutHeader>
         <Grid HeightRequest="100" BackgroundColor="#f0f0f0">
-            <Label Text="AI Chat Assistant" 
+            <Label Text="CENACE" 
                   FontSize="16" 
                   TextColor="Black"
                   FontAttributes="Bold" 
@@ -23,6 +23,12 @@
         <ShellContent
             ContentTemplate="{DataTemplate local:ChatBotView}"
             Route="ChatBotView" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Chat History" Icon="history.png">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:ChatHistoryView}"
+            Route="ChatHistory" />
     </FlyoutItem>
 
     <FlyoutItem Title="Statistics" Icon="stats.png">

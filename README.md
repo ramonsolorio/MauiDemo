@@ -1043,7 +1043,8 @@ builder.Services.AddTransient<ChatStatsView>();
 ```
 
 6. Add icons for the flyout menu:
-   - Add icons named "chat.png" and "stats.png" to the Resources/Images folder
+   - Add icons named "send.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/send.svg)
+   - and "stats.svg" [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/stats.svg) to the Resources/Images folder 
    - Make sure to set the Build Action to "MauiImage" in the file properties
 
 7. Update the constructor of ChatBotView.cs to accept the shared ChatBotViewModel:
@@ -1066,11 +1067,1072 @@ public ChatBotView(AzureOpenAIService openAIService, ChatBotViewModel viewModel 
 
 Now your application has a statistics screen accessible from the flyout menu that shows counts of user messages, bot responses, and total interactions. The statistics will update automatically when new messages are added to the conversation.
 
-## Step 17: Customize and Extend
+## Step 17: Implementing Message Persistence with Local Database
+
+In this step, we'll enhance the chat application by implementing local database storage for chat messages. This will allow conversations to persist between application sessions.
+
+### Adding the Required NuGet Packages
+First, add the SQLite packages to your project:
+
+1. Right-click on the project and select "Manage NuGet Packages"
+2. Search for and install the following packages:
+    * sqlite-net-pcl
+    * SQLitePCLRaw.core
+    * SQLitePCLRaw.bundle_green
+
+### Updating the Database Model
+
+1. Add a new class called ChatConversation.cs into Models folder:
+    ```csharp
+        using SQLite;
+        using System.Collections.Generic;
+
+        namespace MauiDemo.Models
+        {
+            public class ChatConversation
+            {
+                [PrimaryKey, AutoIncrement]
+                public int Id { get; set; }
+                
+                public string Title { get; set; }
+                
+                public DateTime CreatedAt { get; set; }
+                
+                public DateTime LastUpdatedAt { get; set; }
+                
+                [Ignore]
+                public List<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
+                
+                public ChatConversation()
+                {
+                    CreatedAt = DateTime.Now;
+                    LastUpdatedAt = DateTime.Now;
+                    Title = $"Conversation {CreatedAt.ToString("yyyy-MM-dd HH:mm")}";
+                }
+                
+                public ChatConversation(string title)
+                {
+                    Title = title;
+                    CreatedAt = DateTime.Now;
+                    LastUpdatedAt = DateTime.Now;
+                }
+            }
+        }
+    ```
+2. Update existing model Models/ChatMessage.cs  
+   This model represents a chat message in the conversation. It includes properties for the message text, type (user or bot), timestamp, and order in the conversation.
+    ```csharp
+        namespace MauiDemo.Models
+        {
+            public enum MessageType
+            {
+                User,
+                Bot
+            }
+
+            public class ChatMessage
+            {
+                [SQLite.PrimaryKey, SQLite.AutoIncrement, SQLite.Column("id")]
+                public int Id { get; set; }
+                
+                [SQLite.Column("conversation_id")]
+                public int ConversationId { get; set; }
+                
+                [SQLite.Column("message_text")]
+                public string Text { get; set; }
+                
+                [SQLite.Column("message_type")]
+                public MessageType Type { get; set; }
+                
+                [SQLite.Column("timestamp")]
+                public DateTime Timestamp { get; set; }
+                
+                [SQLite.Column("order_field")]
+                public int Order { get; set; }
+
+                public ChatMessage(string text, MessageType type)
+                {
+                    Text = text;
+                    Type = type;
+                    Timestamp = DateTime.Now;
+                }
+                
+                // Parameterless constructor for SQLite
+                public ChatMessage() 
+                {
+                    Timestamp = DateTime.Now;
+                }
+            }
+        }
+    ```
+3. Add new service called Services/DatabaseService.cs
+
+    ```csharp 
+    using SQLite;
+    using MauiDemo.Models;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+
+    namespace MauiDemo.Services
+    {
+        public class DatabaseService
+        {
+            private readonly SQLiteAsyncConnection _database; // Make field readonly
+            private bool _initialized = false;
+            private readonly SemaphoreSlim _initializationSemaphore = new SemaphoreSlim(1, 1);
+
+            public DatabaseService(string dbPath)
+            {
+                _database = new SQLiteAsyncConnection(dbPath);
+                //Initialize the database
+                InitializeAsync().ConfigureAwait(false);
+            }
+
+            public async Task InitializeAsync()
+            {
+                // Only allow one thread to initialize the database
+                await _initializationSemaphore.WaitAsync();
+
+                try
+                {
+                    if (!_initialized)
+                    {
+                        await _database.CreateTableAsync<ChatConversation>();
+                        await _database.CreateTableAsync<ChatMessage>();
+                        _initialized = true;
+                    }
+                }
+                finally
+                {
+                    _initializationSemaphore.Release();
+                }
+            }
+
+
+            // Conversation methods
+            public async Task<List<ChatConversation>> GetAllConversationsAsync()
+            {
+                
+                return await _database.Table<ChatConversation>().OrderByDescending(c => c.LastUpdatedAt).ToListAsync();
+            }
+
+            public async Task<ChatConversation> GetConversationAsync(int id)
+            {
+                
+                var conversation = await _database.Table<ChatConversation>().Where(c => c.Id == id).FirstOrDefaultAsync();
+                if (conversation != null)
+                {
+                    conversation.Messages = await GetConversationMessagesAsync(id);
+                }
+                return conversation;
+            }
+
+            public async Task<int> SaveConversationAsync(ChatConversation conversation)
+            {
+                
+                if (conversation.Id != 0)
+                {
+                    conversation.LastUpdatedAt = DateTime.Now;
+                    await _database.UpdateAsync(conversation);
+                    return conversation.Id;
+                }
+                else
+                {
+                    // Insert the conversation
+                    await _database.InsertAsync(conversation);
+                    // Return the auto-incremented ID that was assigned
+                    return conversation.Id;
+                }
+            }
+
+            public async Task<int> DeleteConversationAsync(ChatConversation conversation)
+            {
+                
+                // First delete all messages in the conversation
+                await _database.Table<ChatMessage>()
+                    .Where(m => m.ConversationId == conversation.Id)
+                    .DeleteAsync();
+
+                // Then delete the conversation
+                return await _database.DeleteAsync(conversation);
+            }
+
+            // Message methods
+            public async Task<List<ChatMessage>> GetConversationMessagesAsync(int conversationId)
+            {
+                
+                return await _database.Table<ChatMessage>()
+                    .Where(m => m.ConversationId == conversationId)
+                    .OrderBy(m => m.Order)
+                    .ToListAsync();
+            }
+
+            public async Task<int> SaveMessageAsync(ChatMessage message, int conversationId)
+            {
+                
+                message.ConversationId = conversationId;
+
+                if (message.Id != 0)
+                {
+                    return await _database.UpdateAsync(message);
+                }
+                else
+                {
+                    return await _database.InsertAsync(message);
+                }
+            }
+
+            public async Task SaveMessagesAsync(List<ChatMessage> messages, int conversationId)
+            {
+                
+                for (int i = 0; i < messages.Count; i++)
+                {
+                    messages[i].ConversationId = conversationId;
+                    messages[i].Order = i;                
+                    await SaveMessageAsync(messages[i], conversationId);
+                }
+            }
+        }
+    }
+    ```
+
+4. Add BaseViewModel.cs to the ViewModels folder. 
+
+    This will be the base class for all view models in the application. It implements INotifyPropertyChanged to support data binding. 
+
+    ```csharp
+    using System.ComponentModel;
+    using System.Runtime.CompilerServices;
+
+    namespace MauiDemo.ViewModels
+    {
+        public class BaseViewModel : INotifyPropertyChanged
+        {
+            public event PropertyChangedEventHandler? PropertyChanged;
+            protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+
+            protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
+            {
+                if (EqualityComparer<T>.Default.Equals(backingStore, value))
+                    return false;
+
+                backingStore = value;
+                OnPropertyChanged(propertyName);
+                return true;
+            }
+        }
+    }
+    ```
+
+5. Add ChatHistoryViewModel.cs to the ViewModels folder. 
+    This will be the view model for the chat history view, which will display a list of conversations. It will also handle loading and deleting conversations.
+    ```csharp
+    using MauiDemo.Models;
+    using MauiDemo.Services;
+    using System.Collections.ObjectModel;
+    using System.ComponentModel;
+    using System.Runtime.CompilerServices;
+    using System.Windows.Input;
+
+    namespace MauiDemo.ViewModels
+    {
+        public class ChatHistoryViewModel : BaseViewModel
+        {
+            private readonly DatabaseService _databaseService;
+            private ChatConversation? _selectedConversation;
+
+            public ObservableCollection<ChatConversation> Conversations { get; }
+            public ICommand LoadConversationCommand { get; }
+            public ICommand DeleteConversationCommand { get; }
+            public ICommand RefreshCommand { get; }
+
+            public ChatConversation SelectedConversation
+            {
+                get => _selectedConversation!;
+                set
+                {
+                    if (_selectedConversation != value)
+                    {
+                        _selectedConversation = value;
+                        OnPropertyChanged();
+                    }
+                }
+            }
+
+            public ChatHistoryViewModel(DatabaseService databaseService)
+            {
+                _databaseService = databaseService;
+                Conversations = new ObservableCollection<ChatConversation>();
+
+                LoadConversationCommand = new Command<ChatConversation>(async (conversation) =>
+                    await Shell.Current.GoToAsync($"//ChatBotView?conversationId={conversation.Id}"));
+
+                DeleteConversationCommand = new Command<ChatConversation>(async (conversation) =>
+                    await DeleteConversation(conversation));
+
+                RefreshCommand = new Command(async () => await LoadConversations());
+
+            }
+
+            public async Task LoadConversations()
+            {
+                Conversations.Clear();
+                var conversations = await _databaseService.GetAllConversationsAsync();
+                foreach (var conversation in conversations)
+                {
+                    Conversations.Add(conversation);
+                }
+            }
+
+            private async Task DeleteConversation(ChatConversation conversation)
+            {
+                if (conversation != null)
+                {
+                    await _databaseService.DeleteConversationAsync(conversation);
+                    Conversations.Remove(conversation);
+                }
+            }
+
+        }
+    }
+    ```
+6. Add ChatHistoryView.xaml to the Views folder. 
+    This will be the view for displaying the chat history, including a list of conversations and options to delete or load them.
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
+                xmlns:models="clr-namespace:MauiDemo.Models"
+                x:Class="MauiDemo.Views.ChatHistoryView"
+                x:DataType="viewmodels:ChatHistoryViewModel"
+                Title="Conversation History">
+
+        <Grid Padding="20">
+            <Grid.RowDefinitions>
+                <!--<RowDefinition Height="Auto"/>-->
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!--<Label Text="Conversation History" 
+                FontSize="24" 
+                FontAttributes="Bold" 
+                TextColor="#333"
+                Margin="0,0,0,10"
+                Grid.Row="0"/>-->
+
+            <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="False">
+                <CollectionView ItemsSource="{Binding Conversations}"
+                            SelectionMode="None"
+                            EmptyView="No conversations found. Start a new chat to see your history.">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ChatConversation">
+                            <SwipeView>
+                                <SwipeView.RightItems>
+                                    <SwipeItems>
+                                        <SwipeItem Text="Delete"
+                                                BackgroundColor="Red"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ChatHistoryViewModel}}, Path=DeleteConversationCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                    </SwipeItems>
+                                </SwipeView.RightItems>
+
+                                <Border Margin="0,5" Padding="15" Stroke="#dddddd" StrokeShape="RoundRectangle 8">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <VerticalStackLayout Spacing="5" Grid.Column="0">
+                                            <Label Text="{Binding Title}" 
+                                                FontAttributes="Bold" 
+                                                FontSize="18"
+                                                TextColor="#333"/>
+
+                                            <Label Text="{Binding LastUpdatedAt, StringFormat='Last updated: {0:g}'}" 
+                                                FontSize="12"
+                                                TextColor="#666"/>
+                                        </VerticalStackLayout>
+
+                                        <Button Text="Load" 
+                                            Grid.Column="1"
+                                            BackgroundColor="#0078D7"
+                                            TextColor="White"
+                                            HeightRequest="40"
+                                            WidthRequest="80"
+                                            CornerRadius="20"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:ChatHistoryViewModel}}, Path=LoadConversationCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                    </Grid>
+                                </Border>
+                            </SwipeView>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </Grid>
+    </ContentPage>
+    ```
+    and the code-behind file ChatHistoryView.xaml.cs:
+
+    ```csharp
+        using MauiDemo.ViewModels;
+
+        namespace MauiDemo.Views;
+
+        public partial class ChatHistoryView : ContentPage
+        {
+            private ChatHistoryViewModel _viewModel;
+
+            public ChatHistoryView(ChatHistoryViewModel viewModel)
+            {
+                InitializeComponent();
+                _viewModel = viewModel;
+                BindingContext = _viewModel;
+            }
+
+            protected override void OnAppearing()
+            {
+                base.OnAppearing();
+                _ = _viewModel.LoadConversations();
+            }
+        }
+    ```
+
+7. Update MauiProgram.cs to register the new services and views:
+
+    ```csharp
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Configuration;
+    using System.Reflection;
+    using MauiDemo.Services;
+    using MauiDemo.Views;
+    using MauiDemo.ViewModels;
+
+    namespace MauiDemo;
+
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                });
+
+            //Setup appSettings    
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("MauiDemo.appsettings.json");
+            if (stream == null)
+            {
+                throw new InvalidOperationException("Failed to load the embedded resource 'MauiDemo.appsettings.json'.");
+            }
+            var config = new ConfigurationBuilder().AddJsonStream(stream).Build();
+            var endpoint = config["AzureOpenAI:Endpoint"] ?? throw new InvalidOperationException("AzureOpenAI:Endpoint is not configured.");
+            var apiKey = config["AzureOpenAI:ApiKey"] ?? throw new InvalidOperationException("AzureOpenAI:ApiKey is not configured.");
+            var deploymentName = config["AzureOpenAI:DeploymentName"] ?? throw new InvalidOperationException("AzureOpenAI:DeploymentName is not configured.");
+
+            // Register Azure OpenAI service
+            builder.Services.AddSingleton(new AzureOpenAIService(endpoint, apiKey, deploymentName));
+
+            // Setup database path
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "chathistory.db3");
+
+            // Register database service
+            var databaseService = new DatabaseService(dbPath);
+
+            builder.Services.AddSingleton(databaseService);
+
+            // Register ChatViewModel as singleton to share between views
+            builder.Services.AddSingleton<ChatBotViewModel>();
+            builder.Services.AddSingleton<ChatHistoryViewModel>();
+            builder.Services.AddSingleton<ChatStatsViewModel>();
+
+            // Register views
+            builder.Services.AddTransient<ChatBotView>();
+            builder.Services.AddTransient<ChatHistoryView>();
+            builder.Services.AddTransient<ChatStatsView>();
+
+    #if DEBUG
+            builder.Logging.AddDebug();
+    #endif
+
+            return builder.Build();
+        }
+    }
+
+    ```
+
+8. Update existing **ViewModels/ChatBotViewModel.cs** to include methods for saving and loading conversations, also use BaseViewModel as base class:
+
+    ```csharp
+    using MauiDemo.Models;
+    using MauiDemo.Services;
+    using OpenAI.Chat;
+    using System.Collections.ObjectModel;
+    using System.ComponentModel;
+    using System.Runtime.CompilerServices;
+    using System.Windows.Input;
+    using ChatMessage = MauiDemo.Models.ChatMessage;
+
+    namespace MauiDemo.ViewModels
+    {
+        public class ChatBotViewModel : INotifyPropertyChanged
+        {
+            private readonly AzureOpenAIService _openAIService;
+            private readonly List<OpenAI.Chat.ChatMessage> _messages;
+            private string _userInput;
+            private bool _isBotTyping;
+            private ChatMessage _lastMessage;
+
+            public ObservableCollection<ChatMessage> Messages { get; }
+            public ICommand SendMessageCommand { get; }
+
+            public string UserInput
+            {
+                get => _userInput;
+                set
+                {
+                    if (_userInput != value)
+                    {
+                        _userInput = value;
+                        OnPropertyChanged();
+                    }
+                }
+            }
+
+            public bool IsBotTyping
+            {
+                get => _isBotTyping;
+                set
+                {
+                    if (_isBotTyping != value)
+                    {
+                        _isBotTyping = value;
+                        OnPropertyChanged();
+                    }
+                }
+            }
+
+            public ChatMessage LastMessage
+            {
+                get => _lastMessage;
+                set
+                {
+                    if (_lastMessage != value)
+                    {
+                        _lastMessage = value;
+                        OnPropertyChanged();
+                    }
+                }
+            }
+
+            public ChatBotViewModel(AzureOpenAIService openAIService)
+            {
+                _openAIService = openAIService;
+                Messages = new ObservableCollection<ChatMessage>();
+                SendMessageCommand = new Command(async () => await SendMessage());
+
+                _messages = new List<OpenAI.Chat.ChatMessage>
+                {
+                    new SystemChatMessage("You are a helpful assistant.")
+                };
+            }
+
+            private async Task SendMessage()
+            {
+                if (string.IsNullOrWhiteSpace(UserInput))
+                    return;
+
+                var userMessageText = UserInput.Trim();
+
+                // Add user message to UI collection
+                var userMessage = new ChatMessage(userMessageText, MessageType.User);
+                Messages.Add(userMessage);
+                LastMessage = userMessage;
+
+                // Add message to OpenAI context
+                _messages.Add(new UserChatMessage(userMessageText));
+
+                // Clear input
+                UserInput = string.Empty;
+
+                // Show typing indicator
+                IsBotTyping = true;
+
+                // Get response
+                string response = await _openAIService.GetCompletionAsync(_messages);
+
+                // Hide typing indicator
+                IsBotTyping = false;
+
+                // Add bot response to UI collection
+                var botMessage = new ChatMessage(response, MessageType.Bot);
+                Messages.Add(botMessage);
+                LastMessage = botMessage;
+
+                // Add bot response to OpenAI context
+                _messages.Add(new AssistantChatMessage(response));
+            }
+
+            public event PropertyChangedEventHandler PropertyChanged;
+
+            protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+    ```
+
+Also modify the **Views/ChatBotView.xaml** file to include a button to navigate to the chat history view:
+
+    ```xml
+    <?xml version="1.0" encoding="utf-8" ?>
+    <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:models="clr-namespace:MauiDemo.Models"
+                xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
+                x:Class="MauiDemo.Views.ChatBotView"
+                x:DataType="viewmodels:ChatBotViewModel">
+
+        <Shell.TitleView>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Column="0"
+                    Text="CENACE ChatBot"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Center"
+                    FontAttributes="Bold"
+                    Margin="5,0,0,0"
+                    FontSize="20"/>
+
+                <Button Grid.Column="1"
+                        Text=""
+                        Command="{Binding NewConversationCommand}"
+                        BackgroundColor="#0078D7"
+                        TextColor="White"
+                        FontSize="Micro"
+                        ImageSource="plus.png"
+                        Margin="0,5,0,3"/>
+
+            </Grid>
+
+
+        </Shell.TitleView>
+
+        <Grid Padding="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Scrollable area containing the conversation -->
+            <CollectionView x:Name="MessageList"
+                            Grid.Row="0"
+                            ItemsSource="{Binding Messages}"
+                            Margin="0,0,0,10">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ChatMessage">
+                        <Grid Padding="5">
+                            <Border BackgroundColor="{Binding Type, Converter={StaticResource MessageTypeToColorConverter}}"
+                                    Stroke="{Binding Type, Converter={StaticResource MessageTypeToColorConverter}}"
+                                    StrokeShape="RoundRectangle 12"
+                                    StrokeThickness="1"
+                                    Padding="10"
+                                    HorizontalOptions="{Binding Type, Converter={StaticResource MessageTypeToAlignmentConverter}}"
+                                    Margin="{Binding Type, Converter={StaticResource MessageTypeToMarginConverter}}">
+                                <Label Text="{Binding Text}"
+                                    TextColor="Black"
+                                    LineBreakMode="WordWrap"/>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <Grid IsVisible="{Binding IsBotTyping}">
+                        <Label Text="Bot is typing..."
+                            TextColor="Gray"
+                            Margin="15,0,0,5"
+                            HorizontalOptions="Start"/>
+                    </Grid>
+                </CollectionView.Footer>
+            </CollectionView>
+
+            <Grid Padding="10"
+                Grid.Row="1">
+                <Border BackgroundColor="#F0F0F0"
+                        StrokeShape="RoundRectangle 10"
+                        Padding="10,10,0,10"
+                        HorizontalOptions="Fill">
+                    <Grid>
+                        <Entry Text="{Binding UserInput}"
+                            Placeholder="Message"
+                            TextColor="Black"
+                            FontSize="16"
+                            VerticalOptions="Center"
+                            Margin="0,0,50,0"
+                            ReturnCommand="{Binding SendMessageCommand}"/>
+
+                        <Button Command="{Binding SendMessageCommand}"
+                                BackgroundColor="Transparent"
+                                TextColor="Black"
+                                WidthRequest="60"
+                                ImageSource="send.png"
+                                HeightRequest="20"
+                                HorizontalOptions="End"
+                                Margin="0"
+                                VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </ContentPage>
+    ```
+    And also update **Views/ChatBotView.xaml.cs** to include the new command and query parameter for conversation ID:
+
+
+    ```csharp
+    using MauiDemo.Models;
+    using MauiDemo.Services;
+    using MauiDemo.ViewModels;
+
+    namespace MauiDemo.Views;
+
+    [QueryProperty(nameof(ConversationId), "conversationId")]
+    public partial class ChatBotView : ContentPage
+    {
+        private ChatBotViewModel _viewModel;
+        private string _conversationId;
+
+        public string ConversationId
+        {
+            get => _conversationId;
+            set
+            {
+                _conversationId = value;
+                if (!string.IsNullOrEmpty(value) && int.TryParse(value, out int id) && id > 0)
+                {
+                    LoadConversation(id);
+                }
+            }
+        }
+
+        public ChatBotView(AzureOpenAIService openAIService, DatabaseService databaseService, ChatBotViewModel viewModel = null)
+        {
+            InitializeComponent();
+            _viewModel = viewModel ?? new ChatBotViewModel(openAIService, databaseService);
+            BindingContext = _viewModel;
+
+            // Subscribe to property changes for LastMessage
+            _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        }
+
+        private async void LoadConversation(int id)
+        {
+            await _viewModel.LoadConversationAsync(id);
+            ScrollToLastMessage();
+        }
+
+        private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ChatBotViewModel.LastMessage) && _viewModel.LastMessage != null)
+            {
+                // Scroll to the last message
+                ScrollToLastMessage();
+            }
+        }
+
+        private void ScrollToLastMessage()
+        {
+            if (_viewModel.Messages.Count > 0)
+            {
+                MessageList.ScrollTo(_viewModel.Messages.Count - 1, position: ScrollToPosition.End, animate: true);
+            }
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            // Ensure we scroll to the last message when the page appears
+            ScrollToLastMessage();
+        }
+    }
+    ```
+
+9. Adding Icon Resources
+To add icons for the send and plus buttons to the Resources/Images folder, you can use the following images:
+* plus.svg: [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/plus.svg)
+* history.svg: [Download](https://github.com/ramonsolorio/MauiDemo/blob/master/Resources/Images/history.svg)
+
+
+10. Update AppShell.xaml to include the new ChatHistoryView:
+
+    ```xml
+    ... Existing code ...
+    <FlyoutItem Title="Chat History" Icon="history.png">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:ChatHistoryView}"
+            Route="ChatHistory" />
+    </FlyoutItem>
+    ... Existing code ...
+    ```
+
+11. Update ChatStatsViewModel.cs in order to retrieve the chat history from the database and display it in the ChatHistoryView:
+
+    ```csharp
+        using MauiDemo.Models;
+        using MauiDemo.Services;
+
+        namespace MauiDemo.ViewModels
+        {
+            public class ChatStatsViewModel : BaseViewModel
+            {
+                private readonly DatabaseService _databaseService;
+                private int _userMessageCount;
+                private int _botMessageCount;
+                private int _totalMessageCount;
+                private int _totalConversationsCount;
+
+                public int UserMessageCount
+                {
+                    get => _userMessageCount;
+                    set
+                    {
+                        if (_userMessageCount != value)
+                        {
+                            _userMessageCount = value;
+                            OnPropertyChanged();
+                        }
+                    }
+                }
+
+                public int BotMessageCount
+                {
+                    get => _botMessageCount;
+                    set
+                    {
+                        if (_botMessageCount != value)
+                        {
+                            _botMessageCount = value;
+                            OnPropertyChanged();
+                        }
+                    }
+                }
+
+                public int TotalMessageCount
+                {
+                    get => _totalMessageCount;
+                    set
+                    {
+                        if (_totalMessageCount != value)
+                        {
+                            _totalMessageCount = value;
+                            OnPropertyChanged();
+                        }
+                    }
+                }
+
+                public int TotalConversationsCount
+                {
+                    get => _totalConversationsCount;
+                    set
+                    {
+                        if (_totalConversationsCount != value)
+                        {
+                            _totalConversationsCount = value;
+                            OnPropertyChanged();
+                        }
+                    }
+                }
+
+                public ChatStatsViewModel(DatabaseService databaseService)
+                {
+                    _databaseService = databaseService;
+                }
+
+                public async Task LoadHistoricalStatsAsync()
+                {
+                    var conversations = await _databaseService.GetAllConversationsAsync();
+                    TotalConversationsCount = conversations.Count;
+
+                    int totalUserMessages = 0;
+                    int totalBotMessages = 0;
+
+                    foreach (var conversation in conversations)
+                    {
+                        var messages = await _databaseService.GetConversationMessagesAsync(conversation.Id);
+                        totalUserMessages += messages.Count(m => m.Type == MessageType.User);
+                        totalBotMessages += messages.Count(m => m.Type == MessageType.Bot);
+                    }
+
+                    // Update the stats with both current session and historical data
+                    UserMessageCount = totalUserMessages ;
+                    BotMessageCount = totalBotMessages;
+                    TotalMessageCount = totalUserMessages + totalBotMessages ;
+                }
+
+            }
+        }
+    ```
+
+    Modify also the corresponding **Views/ChatStatsView.xaml** to include total messages and conversations: 
+
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
+                x:Class="MauiDemo.Views.ChatStatsView"
+                x:DataType="viewmodels:ChatStatsViewModel">
+
+        <ScrollView>
+            <Grid Padding="20">
+                <Border BackgroundColor="#ffffff" 
+                        Padding="20" 
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="#d1d1d1"
+                        VerticalOptions="Start">
+                    <VerticalStackLayout Spacing="20">
+                        <Label Text="Interaction Statistics"
+                            FontSize="28"
+                            FontAttributes="Bold"
+                            TextColor="#333"
+                            HorizontalOptions="Center" />
+
+                        <Grid ColumnDefinitions="40, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnSpacing="10" RowSpacing="15">
+                            <!-- Headers -->
+                            <Label Text="Metric" 
+                                Grid.Row="0" Grid.Column="1" 
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                TextColor="#555"
+                                HorizontalOptions="Start" />
+                            <Label Text="Count" 
+                                Grid.Row="0" Grid.Column="2" 
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                TextColor="#555"
+                                HorizontalOptions="End" />
+
+                            <!-- User Messages -->
+                            <Image Source="user_icon.png" 
+                                Grid.Row="1" Grid.Column="0" 
+                                HeightRequest="24" WidthRequest="24" 
+                                VerticalOptions="Center" />
+                            <Label Text="User Messages" 
+                                Grid.Row="1" Grid.Column="1" 
+                                FontSize="16"
+                                TextColor="#333"
+                                VerticalOptions="Center" />
+                            <Label Text="{Binding UserMessageCount}" 
+                                Grid.Row="1" Grid.Column="2"
+                                FontSize="20"
+                                FontAttributes="Bold"
+                                TextColor="#0078D7"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+
+                            <!-- Bot Messages -->
+                            <Image Source="bot_icon.png" 
+                                Grid.Row="2" Grid.Column="0" 
+                                HeightRequest="24" WidthRequest="24" 
+                                VerticalOptions="Center" />
+                            <Label Text="Bot Responses" 
+                                Grid.Row="2" Grid.Column="1" 
+                                FontSize="16"
+                                TextColor="#333"
+                                VerticalOptions="Center" />
+                            <Label Text="{Binding BotMessageCount}" 
+                                Grid.Row="2" Grid.Column="2" 
+                                FontSize="20"
+                                FontAttributes="Bold"
+                                TextColor="#0078D7"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+
+                            <!-- Total Messages -->
+                            <Image Source="total_icon.png" 
+                                Grid.Row="3" Grid.Column="0" 
+                                HeightRequest="24" WidthRequest="24" 
+                                VerticalOptions="Center" />
+                            <Label Text="Total Messages" 
+                                Grid.Row="3" Grid.Column="1" 
+                                FontSize="16"
+                                TextColor="#333"
+                                VerticalOptions="Center" />
+                            <Label Text="{Binding TotalMessageCount}" 
+                                Grid.Row="3" Grid.Column="2" 
+                                FontSize="20"
+                                FontAttributes="Bold"
+                                TextColor="#0078D7"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                                
+                            <!-- Total Conversations -->
+                            <Image Source="history_icon.png" 
+                                Grid.Row="4" Grid.Column="0" 
+                                HeightRequest="24" WidthRequest="24" 
+                                VerticalOptions="Center" />
+                            <Label Text="Total Conversations" 
+                                Grid.Row="4" Grid.Column="1" 
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                TextColor="#333"
+                                VerticalOptions="Center" />
+                            <Label Text="{Binding TotalConversationsCount}" 
+                                Grid.Row="4" Grid.Column="2" 
+                                FontSize="20"
+                                FontAttributes="Bold"
+                                TextColor="#0078D7"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </ScrollView>
+    </ContentPage>
+    ```
+    and his code-behind file **Views/ChatStatsView.xaml.cs** to load the stats when the page appears:
+
+    ```csharp
+    using MauiDemo.ViewModels;
+
+    namespace MauiDemo.Views;
+
+    public partial class ChatStatsView : ContentPage
+    {
+        private ChatStatsViewModel _viewModel;
+
+        public ChatStatsView(ChatStatsViewModel chatStatsViewModel)
+        {
+            InitializeComponent();
+            _viewModel = chatStatsViewModel;
+            BindingContext = _viewModel;
+        }
+
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+            // Refresh stats when the page appears
+            await _viewModel.LoadHistoricalStatsAsync();
+        }
+    }
+    ```
+## Step 18: Customize and Extend
 Now that you have a working chatbot, you can customize and extend it:
 1.	Change the appearance by updating the XAML styles
 2.	Add support for additional message types (images, files)
-3.	Implement message persistence using a local database
+3.	Implement a more sophisticated conversation history management system
 4.	Add authentication to secure the conversation
 5.	Implement more advanced AI features using Azure Cognitive Services
 

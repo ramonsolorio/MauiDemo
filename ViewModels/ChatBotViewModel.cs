@@ -9,16 +9,20 @@ using ChatMessage = MauiDemo.Models.ChatMessage;
 
 namespace MauiDemo.ViewModels
 {
-    public class ChatBotViewModel : INotifyPropertyChanged
+    public class ChatBotViewModel : BaseViewModel
     {
         private readonly AzureOpenAIService _openAIService;
+        private readonly DatabaseService _databaseService;
         private readonly List<OpenAI.Chat.ChatMessage> _messages;
         private string _userInput;
         private bool _isBotTyping;
         private ChatMessage _lastMessage;
+        private int _currentConversationId;
 
         public ObservableCollection<ChatMessage> Messages { get; }
         public ICommand SendMessageCommand { get; }
+        public ICommand SaveConversationCommand { get; }
+        public ICommand NewConversationCommand { get; }
 
         public string UserInput
         {
@@ -59,16 +63,113 @@ namespace MauiDemo.ViewModels
             }
         }
 
-        public ChatBotViewModel(AzureOpenAIService openAIService)
+        public int CurrentConversationId
+        {
+            get => _currentConversationId;
+            set
+            {
+                if (_currentConversationId != value)
+                {
+                    _currentConversationId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public ChatBotViewModel(AzureOpenAIService openAIService, DatabaseService databaseService)
         {
             _openAIService = openAIService;
+            _databaseService = databaseService;
             Messages = new ObservableCollection<ChatMessage>();
             SendMessageCommand = new Command(async () => await SendMessage());
+            SaveConversationCommand = new Command(async () => await SaveConversation());
+            NewConversationCommand = new Command(async () => await NewConversation());
 
             _messages = new List<OpenAI.Chat.ChatMessage>
             {
                 new SystemChatMessage("You are a helpful assistant.")
             };
+
+        }
+
+        public async Task LoadConversationAsync(int conversationId)
+        {
+            var conversation = await _databaseService.GetConversationAsync(conversationId);
+            if (conversation != null)
+            {
+                CurrentConversationId = conversation.Id;
+
+                // Clear current messages
+                Messages.Clear();
+                _messages.Clear();
+                _messages.Add(new SystemChatMessage("You are a helpful assistant."));
+
+                // Add messages from database
+                foreach (var message in conversation.Messages)
+                {
+                    Messages.Add(message);
+
+                    // Add to OpenAI context
+                    if (message.Type == MessageType.User)
+                    {
+                        _messages.Add(new UserChatMessage(message.Text));
+                    }
+                    else
+                    {
+                        _messages.Add(new AssistantChatMessage(message.Text));
+                    }
+                }
+
+                if (Messages.Count > 0)
+                {
+                    LastMessage = Messages[Messages.Count - 1];
+                }
+            }
+        }
+
+        public async Task NewConversation()
+        {
+            // Clear messages
+            Messages.Clear();
+
+            // Reset OpenAI context
+            _messages.Clear();
+            _messages.Add(new SystemChatMessage("You are a helpful assistant."));
+
+            _userInput = "";
+            _isBotTyping = false;
+
+            // Reset conversation ID and title
+            CurrentConversationId = 0;
+
+            // Reset LastMessage
+            LastMessage = null;
+
+            // Simulate async work
+            await Task.CompletedTask;
+        }
+
+        public async Task SaveConversation()
+        {
+            if (Messages.Count == 0)
+                return;
+
+            var conversation = new ChatConversation(Messages.First().Text);
+
+            if (CurrentConversationId != 0)
+            {
+                conversation.Id = CurrentConversationId;
+            }
+
+            // Save the conversation first to get its ID
+            var conversationId = await _databaseService.SaveConversationAsync(conversation);
+            CurrentConversationId = conversationId;
+
+            // Convert ObservableCollection to List
+            var messagesList = Messages.ToList();
+
+            // Save all messages
+            await _databaseService.SaveMessagesAsync(messagesList, conversationId);
         }
 
         private async Task SendMessage()
@@ -105,13 +206,11 @@ namespace MauiDemo.ViewModels
 
             // Add bot response to OpenAI context
             _messages.Add(new AssistantChatMessage(response));
+
+            // Auto-save conversation after each message exchange
+            await SaveConversation();
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
     }
 }

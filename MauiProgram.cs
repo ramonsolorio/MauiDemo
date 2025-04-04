@@ -20,6 +20,7 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
+        //Setup appSettings    
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("MauiDemo.appsettings.json");
         if (stream == null)
         {
@@ -29,14 +30,26 @@ public static class MauiProgram
         var endpoint = config["AzureOpenAI:Endpoint"] ?? throw new InvalidOperationException("AzureOpenAI:Endpoint is not configured.");
         var apiKey = config["AzureOpenAI:ApiKey"] ?? throw new InvalidOperationException("AzureOpenAI:ApiKey is not configured.");
         var deploymentName = config["AzureOpenAI:DeploymentName"] ?? throw new InvalidOperationException("AzureOpenAI:DeploymentName is not configured.");
-        
+
+        // Register Azure OpenAI service
         builder.Services.AddSingleton(new AzureOpenAIService(endpoint, apiKey, deploymentName));
+
+        // Setup database path
+        string dbPath = Path.Combine(FileSystem.AppDataDirectory, "chathistory.db3");
+
+        // Register database service
+        var databaseService = new DatabaseService(dbPath);
+
+        builder.Services.AddSingleton(databaseService);
 
         // Register ChatViewModel as singleton to share between views
         builder.Services.AddSingleton<ChatBotViewModel>();
+        builder.Services.AddSingleton<ChatHistoryViewModel>();
+        builder.Services.AddSingleton<ChatStatsViewModel>();
 
         // Register views
         builder.Services.AddTransient<ChatBotView>();
+        builder.Services.AddTransient<ChatHistoryView>();
         builder.Services.AddTransient<ChatStatsView>();
 
 #if DEBUG
