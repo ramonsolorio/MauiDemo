@@ -1796,75 +1796,76 @@ Also modify the **Views/ChatBotView.xaml** file to include a button to navigate 
         </Grid>
     </ContentPage>
     ```
+
     And also update **Views/ChatBotView.xaml.cs** to include the new command and query parameter for conversation ID:
 
 
     ```csharp
-    using MauiDemo.Models;
-    using MauiDemo.Services;
-    using MauiDemo.ViewModels;
+        using MauiDemo.Models;
+        using MauiDemo.Services;
+        using MauiDemo.ViewModels;
 
-    namespace MauiDemo.Views;
+        namespace MauiDemo.Views;
 
-    [QueryProperty(nameof(ConversationId), "conversationId")]
-    public partial class ChatBotView : ContentPage
-    {
-        private ChatBotViewModel _viewModel;
-        private string _conversationId;
-
-        public string ConversationId
+        [QueryProperty(nameof(ConversationId), "conversationId")]
+        public partial class ChatBotView : ContentPage
         {
-            get => _conversationId;
-            set
+            private ChatBotViewModel _viewModel;
+            private string _conversationId;
+
+            public string ConversationId
             {
-                _conversationId = value;
-                if (!string.IsNullOrEmpty(value) && int.TryParse(value, out int id) && id > 0)
+                get => _conversationId;
+                set
                 {
-                    LoadConversation(id);
+                    _conversationId = value;
+                    if (!string.IsNullOrEmpty(value) && int.TryParse(value, out int id) && id > 0)
+                    {
+                        LoadConversation(id);
+                    }
                 }
             }
-        }
 
-        public ChatBotView(AzureOpenAIService openAIService, DatabaseService databaseService, ChatBotViewModel viewModel = null)
-        {
-            InitializeComponent();
-            _viewModel = viewModel ?? new ChatBotViewModel(openAIService, databaseService);
-            BindingContext = _viewModel;
-
-            // Subscribe to property changes for LastMessage
-            _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-        }
-
-        private async void LoadConversation(int id)
-        {
-            await _viewModel.LoadConversationAsync(id);
-            ScrollToLastMessage();
-        }
-
-        private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(ChatBotViewModel.LastMessage) && _viewModel.LastMessage != null)
+            public ChatBotView(AzureOpenAIService openAIService, DatabaseService databaseService, ChatBotViewModel viewModel = null)
             {
-                // Scroll to the last message
+                InitializeComponent();
+                _viewModel = viewModel ?? new ChatBotViewModel(openAIService, databaseService);
+                BindingContext = _viewModel;
+
+                // Subscribe to property changes for LastMessage
+                _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+            }
+
+            private async void LoadConversation(int id)
+            {
+                await _viewModel.LoadConversationAsync(id);
+                ScrollToLastMessage();
+            }
+
+            private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+            {
+                if (e.PropertyName == nameof(ChatBotViewModel.LastMessage) && _viewModel.LastMessage != null)
+                {
+                    // Scroll to the last message
+                    ScrollToLastMessage();
+                }
+            }
+
+            private void ScrollToLastMessage()
+            {
+                if (_viewModel.Messages.Count > 0)
+                {
+                    MessageList.ScrollTo(_viewModel.Messages.Count - 1, position: ScrollToPosition.End, animate: true);
+                }
+            }
+
+            protected override void OnAppearing()
+            {
+                base.OnAppearing();
+                // Ensure we scroll to the last message when the page appears
                 ScrollToLastMessage();
             }
         }
-
-        private void ScrollToLastMessage()
-        {
-            if (_viewModel.Messages.Count > 0)
-            {
-                MessageList.ScrollTo(_viewModel.Messages.Count - 1, position: ScrollToPosition.End, animate: true);
-            }
-        }
-
-        protected override void OnAppearing()
-        {
-            base.OnAppearing();
-            // Ensure we scroll to the last message when the page appears
-            ScrollToLastMessage();
-        }
-    }
     ```
 
 9. Adding Icon Resources
@@ -1986,120 +1987,120 @@ To add icons for the send and plus buttons to the Resources/Images folder, you c
     Modify also the corresponding **Views/ChatStatsView.xaml** to include total messages and conversations: 
 
     ```xml
-    <?xml version="1.0" encoding="utf-8"?>
-    <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-                xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
-                x:Class="MauiDemo.Views.ChatStatsView"
-                x:DataType="viewmodels:ChatStatsViewModel">
+        <?xml version="1.0" encoding="utf-8"?>
+        <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                    xmlns:viewmodels="clr-namespace:MauiDemo.ViewModels"
+                    x:Class="MauiDemo.Views.ChatStatsView"
+                    x:DataType="viewmodels:ChatStatsViewModel">
 
-        <ScrollView>
-            <Grid Padding="20">
-                <Border BackgroundColor="#ffffff" 
-                        Padding="20" 
-                        StrokeShape="RoundRectangle 15"
-                        Stroke="#d1d1d1"
-                        VerticalOptions="Start">
-                    <VerticalStackLayout Spacing="20">
-                        <Label Text="Interaction Statistics"
-                            FontSize="28"
-                            FontAttributes="Bold"
-                            TextColor="#333"
-                            HorizontalOptions="Center" />
-
-                        <Grid ColumnDefinitions="40, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnSpacing="10" RowSpacing="15">
-                            <!-- Headers -->
-                            <Label Text="Metric" 
-                                Grid.Row="0" Grid.Column="1" 
-                                FontAttributes="Bold"
-                                FontSize="18"
-                                TextColor="#555"
-                                HorizontalOptions="Start" />
-                            <Label Text="Count" 
-                                Grid.Row="0" Grid.Column="2" 
-                                FontAttributes="Bold"
-                                FontSize="18"
-                                TextColor="#555"
-                                HorizontalOptions="End" />
-
-                            <!-- User Messages -->
-                            <Image Source="user_icon.png" 
-                                Grid.Row="1" Grid.Column="0" 
-                                HeightRequest="24" WidthRequest="24" 
-                                VerticalOptions="Center" />
-                            <Label Text="User Messages" 
-                                Grid.Row="1" Grid.Column="1" 
-                                FontSize="16"
-                                TextColor="#333"
-                                VerticalOptions="Center" />
-                            <Label Text="{Binding UserMessageCount}" 
-                                Grid.Row="1" Grid.Column="2"
-                                FontSize="20"
-                                FontAttributes="Bold"
-                                TextColor="#0078D7"
-                                HorizontalOptions="End"
-                                VerticalOptions="Center" />
-
-                            <!-- Bot Messages -->
-                            <Image Source="bot_icon.png" 
-                                Grid.Row="2" Grid.Column="0" 
-                                HeightRequest="24" WidthRequest="24" 
-                                VerticalOptions="Center" />
-                            <Label Text="Bot Responses" 
-                                Grid.Row="2" Grid.Column="1" 
-                                FontSize="16"
-                                TextColor="#333"
-                                VerticalOptions="Center" />
-                            <Label Text="{Binding BotMessageCount}" 
-                                Grid.Row="2" Grid.Column="2" 
-                                FontSize="20"
-                                FontAttributes="Bold"
-                                TextColor="#0078D7"
-                                HorizontalOptions="End"
-                                VerticalOptions="Center" />
-
-                            <!-- Total Messages -->
-                            <Image Source="total_icon.png" 
-                                Grid.Row="3" Grid.Column="0" 
-                                HeightRequest="24" WidthRequest="24" 
-                                VerticalOptions="Center" />
-                            <Label Text="Total Messages" 
-                                Grid.Row="3" Grid.Column="1" 
-                                FontSize="16"
-                                TextColor="#333"
-                                VerticalOptions="Center" />
-                            <Label Text="{Binding TotalMessageCount}" 
-                                Grid.Row="3" Grid.Column="2" 
-                                FontSize="20"
-                                FontAttributes="Bold"
-                                TextColor="#0078D7"
-                                HorizontalOptions="End"
-                                VerticalOptions="Center" />
-                                
-                            <!-- Total Conversations -->
-                            <Image Source="history_icon.png" 
-                                Grid.Row="4" Grid.Column="0" 
-                                HeightRequest="24" WidthRequest="24" 
-                                VerticalOptions="Center" />
-                            <Label Text="Total Conversations" 
-                                Grid.Row="4" Grid.Column="1" 
-                                FontSize="16"
+            <ScrollView>
+                <Grid Padding="20">
+                    <Border BackgroundColor="#ffffff" 
+                            Padding="20" 
+                            StrokeShape="RoundRectangle 15"
+                            Stroke="#d1d1d1"
+                            VerticalOptions="Start">
+                        <VerticalStackLayout Spacing="20">
+                            <Label Text="Interaction Statistics"
+                                FontSize="28"
                                 FontAttributes="Bold"
                                 TextColor="#333"
-                                VerticalOptions="Center" />
-                            <Label Text="{Binding TotalConversationsCount}" 
-                                Grid.Row="4" Grid.Column="2" 
-                                FontSize="20"
-                                FontAttributes="Bold"
-                                TextColor="#0078D7"
-                                HorizontalOptions="End"
-                                VerticalOptions="Center" />
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-            </Grid>
-        </ScrollView>
-    </ContentPage>
+                                HorizontalOptions="Center" />
+
+                            <Grid ColumnDefinitions="40, *, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnSpacing="10" RowSpacing="15">
+                                <!-- Headers -->
+                                <Label Text="Metric" 
+                                    Grid.Row="0" Grid.Column="1" 
+                                    FontAttributes="Bold"
+                                    FontSize="18"
+                                    TextColor="#555"
+                                    HorizontalOptions="Start" />
+                                <Label Text="Count" 
+                                    Grid.Row="0" Grid.Column="2" 
+                                    FontAttributes="Bold"
+                                    FontSize="18"
+                                    TextColor="#555"
+                                    HorizontalOptions="End" />
+
+                                <!-- User Messages -->
+                                <Image Source="user_icon.png" 
+                                    Grid.Row="1" Grid.Column="0" 
+                                    HeightRequest="24" WidthRequest="24" 
+                                    VerticalOptions="Center" />
+                                <Label Text="User Messages" 
+                                    Grid.Row="1" Grid.Column="1" 
+                                    FontSize="16"
+                                    TextColor="#333"
+                                    VerticalOptions="Center" />
+                                <Label Text="{Binding UserMessageCount}" 
+                                    Grid.Row="1" Grid.Column="2"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#0078D7"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+
+                                <!-- Bot Messages -->
+                                <Image Source="bot_icon.png" 
+                                    Grid.Row="2" Grid.Column="0" 
+                                    HeightRequest="24" WidthRequest="24" 
+                                    VerticalOptions="Center" />
+                                <Label Text="Bot Responses" 
+                                    Grid.Row="2" Grid.Column="1" 
+                                    FontSize="16"
+                                    TextColor="#333"
+                                    VerticalOptions="Center" />
+                                <Label Text="{Binding BotMessageCount}" 
+                                    Grid.Row="2" Grid.Column="2" 
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#0078D7"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+
+                                <!-- Total Messages -->
+                                <Image Source="total_icon.png" 
+                                    Grid.Row="3" Grid.Column="0" 
+                                    HeightRequest="24" WidthRequest="24" 
+                                    VerticalOptions="Center" />
+                                <Label Text="Total Messages" 
+                                    Grid.Row="3" Grid.Column="1" 
+                                    FontSize="16"
+                                    TextColor="#333"
+                                    VerticalOptions="Center" />
+                                <Label Text="{Binding TotalMessageCount}" 
+                                    Grid.Row="3" Grid.Column="2" 
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#0078D7"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                                    
+                                <!-- Total Conversations -->
+                                <Image Source="history_icon.png" 
+                                    Grid.Row="4" Grid.Column="0" 
+                                    HeightRequest="24" WidthRequest="24" 
+                                    VerticalOptions="Center" />
+                                <Label Text="Total Conversations" 
+                                    Grid.Row="4" Grid.Column="1" 
+                                    FontSize="16"
+                                    FontAttributes="Bold"
+                                    TextColor="#333"
+                                    VerticalOptions="Center" />
+                                <Label Text="{Binding TotalConversationsCount}" 
+                                    Grid.Row="4" Grid.Column="2" 
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#0078D7"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </ScrollView>
+        </ContentPage>
     ```
     and his code-behind file **Views/ChatStatsView.xaml.cs** to load the stats when the page appears:
 
